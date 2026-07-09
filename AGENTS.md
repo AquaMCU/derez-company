@@ -16,15 +16,13 @@ derez-company/
 │   ├── manifest.json        # Standard Hermes dashboard manifest (entry, tab, api, css)
 │   ├── plugin_api.py        # FastAPI APIRouter — serves report data to the frontend
 │   └── dist/
-│       ├── index.js         # Frontend JS bundle — renders the Company tab
+│       ├── index.js         # Frontend JS bundle — registered React component
 │       └── style.css        # Minimal CSS reset
-├── discovery.py             # Scans company/reports/ for .md files
+├── discovery.py             # Scans ~/company/reports/ for .md files
 ├── markdown_renderer.py     # Parses markdown into enhanced structure
 ├── renderer.py              # Transforms into dashboard UI primitives
 ├── skills/
-│   ├── derez-crm/           # CRM data management skill
-│   │   └── SKILL.md
-│   └── derez-dashboard/     # Dashboard specification skill
+│   └── derez-crm/           # CRM data management skill
 │       └── SKILL.md
 ├── README.md
 ├── AGENTS.md
@@ -34,9 +32,8 @@ derez-company/
 ### Layers
 
 1. **Data skills** (`skills/derez-crm/`) — Manage raw data storage. Pure CRUD: create, read, update, search, report. No business logic. Skills are registered via `ctx.register_skill()` in `__init__.py`.
-2. **Dashboard plugin** (`dashboard/`) — Standard Hermes dashboard plugin. The `manifest.json` uses the standard schema (`entry`, `tab`, `api`, `css`) that Hermes actually reads. The frontend JS is loaded as an iframe entry. The backend is a FastAPI `APIRouter` mounted automatically by Hermes.
-3. **Presentation skills** (`skills/derez-dashboard/SKILL.md`) — These are specifications only. The actual implementation is the dashboard plugin.
-4. **Business skills** (future: `derez-marketing`, `derez-sales`) — Use data skills to perform actual work.
+2. **Dashboard plugin** (`dashboard/`) — Standard Hermes dashboard plugin. The frontend is a React component registered via `window.__HERMES_PLUGINS__.register()`. The backend is a FastAPI `APIRouter` mounted automatically by Hermes.
+3. **Business skills** (future: `derez-marketing`, `derez-sales`) — Use data skills to perform actual work.
 
 ---
 
@@ -80,8 +77,7 @@ When a user asks you to perform a task:
 1. Check whether a skill exists for that domain under `skills/`.
 2. If it exists, read its `SKILL.md` and follow its instructions.
 3. If the skill is a **data skill**, return file paths for further processing.
-4. If the skill is a **presentation skill**, its `SKILL.md` is a specification — the actual dashboard implementation lives in `dashboard/`.
-5. If no skill exists, note it — the user may want to create one.
+4. If no skill exists, note it — the user may want to create one.
 
 ### For humans
 
@@ -118,7 +114,7 @@ The `dashboard/manifest.json` uses the standard Hermes dashboard plugin schema, 
 | `label` | Display name shown in the dashboard tab |
 | `icon` | Icon identifier |
 | `tab.path` | Route path for the tab (e.g. `/dashboard/company`) |
-| `entry` | JS bundle path (relative to `dashboard/`). The frontend loads this as an iframe. |
+| `entry` | JS bundle path (relative to `dashboard/`). The frontend script must call `window.__HERMES_PLUGINS__.register()` to register a React component. |
 | `css` | Optional CSS file path |
 | `api` | Python file with a FastAPI `APIRouter` named `router`. Hermes mounts this automatically. |
 
@@ -137,10 +133,15 @@ The following **custom fields are ignored** by Hermes and must not be used:
 ### How the frontend works
 
 1. Hermes reads `manifest.json` and discovers `entry`, `api`, and `tab`.
-2. The frontend loads `dist/index.js` inside an iframe at `/dashboard/company`.
-3. The JS bundle calls the plugin API at `/api/plugins/derez-company/`.
-4. The API is served by `plugin_api.py` — a FastAPI `APIRouter` that Hermes mounts automatically.
-5. The frontend self-renders using inline styles (no external dependencies).
+2. The frontend loads `dist/index.js` via a `<script>` tag. The script must call `window.__HERMES_PLUGINS__.register('derez-company', ReactComponent)` to register its component — this is required by the Hermes plugin SDK.
+3. The React component fetches report tabs from `/api/plugins/derez-company/tabs`.
+4. When a tab is selected, it fetches the report content from `/api/plugins/derez-company/report/{tab_id}`.
+5. Reports can be either **HTML** (`.html` files in `~/company/reports/`) or **Markdown** (`.md` files rendered by the markdown renderer). HTML reports are rendered directly; Markdown reports are converted to HTML by the backend.
+6. The frontend injects the HTML into the dashboard panel with theme-consistent styling.
+
+### Reports path resolution
+
+The Hermes dashboard process may run from a different working directory (e.g. `/` instead of `~/` when started via systemd). The plugin resolves the reports path relative to the **home directory** (`Path.home()`), not `os.getcwd()`, so `~/company/reports/` always works regardless of how the dashboard was started.
 
 ### API endpoints
 
@@ -240,9 +241,9 @@ Before submitting a new skill, verify it works correctly in both environments.
 ## Roadmap
 
 | Area | Status | Notes |
-|---|---|---|
-| CRM (`derez-crm`) | ✅ Live | Core data management complete |
-| Dashboard (`dashboard`) | ✅ Live | Hermes plugin — report discovery & rendering |
+|---|---|---|---|
+| CRM (`derez-crm`) | ✅ Live | Core data management complete. Generates HTML reports to `~/company/reports/`. |
+| Dashboard (`dashboard`) | ✅ Live | HTML-first report rendering. |
 | Marketing (`derez-marketing`) | 🚧 In progress | Campaign tracking, content pipelines |
 | Sales (`derez-sales`) | 🚧 In progress | Outreach sequencing, deal tracking |
 | HR | 📋 Planned | Employee records, onboarding |

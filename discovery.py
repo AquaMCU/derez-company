@@ -41,10 +41,18 @@ class ReportDiscovery:
         for entry in sorted(directory.iterdir()):
             if not entry.is_file() or entry.name.startswith("."):
                 continue
-            if entry.suffix.lower() not in (".md", ".mdx"):
+            if entry.suffix.lower() not in (".md", ".mdx", ".html"):
                 continue
             report = self._build_report(entry)
-            self._reports[report.tab_id] = report
+            tab_id = report.tab_id
+            # Prefer .html over .md/.mdx when both exist with the same tab_id
+            existing = self._reports.get(tab_id)
+            if existing and existing.path.suffix.lower() == ".html":
+                continue  # keep the existing .html
+            if existing and report.path.suffix.lower() == ".html":
+                self._reports[tab_id] = report  # upgrade to .html
+            else:
+                self._reports[tab_id] = report
 
         logger.debug("Scanned %s — found %d reports", directory, len(self._reports))
         return self.get_reports()

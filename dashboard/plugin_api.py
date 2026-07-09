@@ -84,6 +84,15 @@ async def get_report(tab_id: str):
 
     try:
         content = report.path.read_text(encoding="utf-8")
+        if report.path.suffix.lower() == ".html":
+            # HTML report — return directly
+            return {
+                "tab_id": tab_id,
+                "name": report.display_name,
+                "path": str(report.path),
+                "content": {"html": content},
+            }
+        # Markdown report — render via markdown renderer
         rendered = renderer.render(content, tab_id)
         return {
             "tab_id": tab_id,
