@@ -2,53 +2,60 @@
 
 FastAPI APIRouter mounted by the Hermes dashboard at runtime.
 Provides the backend endpoints for the Company reports tab.
+
+State is initialized by __init__.py's register() and shared via
+the _plugin_state module attribute.
 """
 
 from __future__ import annotations
 
 import logging
 import os
+import sys
 from pathlib import Path
 
-from fastapi import APIRouter, HTTPException
-from fastapi.responses import JSONResponse
+# Ensure plugin root is on sys.path for sibling imports
+_plugin_root = str(Path(__file__).resolve().parent.parent)
+if _plugin_root not in sys.path:
+    sys.path.insert(0, _plugin_root)
 
-from discovery import ReportDiscovery
-from markdown_renderer import MarkdownRenderer
+from fastapi import APIRouter, HTTPException
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["derez-company"])
 
-_discovery: ReportDiscovery | None = None
-_renderer: MarkdownRenderer | None = None
-_reports_path: Path | None = None
+# State set by __init__.py register()
+_plugin_state = None
 
 
-def _ensure_initialized():
-    global _discovery, _renderer, _reports_path
-    if _discovery is not None:
-        return
-    _discovery = ReportDiscovery()
-    _renderer = MarkdownRenderer()
+def _get_state():
+    """Return the shared plugin state initialized by register()."""
+    global _plugin_state
+    if _plugin_state is not None:
+        return _plugin_state
+    # Fallback: initialize independently if register() hasn't run yet
+    from discovery import ReportDiscovery
+    from markdown_renderer import MarkdownRenderer
+    discovery = ReportDiscovery()
+    renderer = MarkdownRenderer()
     workspace = os.getcwd()
-    _reports_path = Path(workspace) / "company" / "reports"
-    _reports_path.mkdir(parents=True, exist_ok=True)
-    _discovery.scan(_reports_path)
-    logger.info("Company Dashboard initialized — scanning %s", _reports_path)
-
-
-def _get_report(tab_id):
-    _ensure_initialized()
-    for r in _discovery.get_reports():
-        if r.tab_id == tab_id:
-            return r
-    return None
+    reports_path = Path(workspace) / "company" / "reports"
+    reports_path.mkdir(parents=True, exist_ok=True)
+    discovery.scan(reports_path)
+    _plugin_state = {
+        "discovery": discovery,
+        "renderer": renderer,
+        "reports_path": reports_path,
+    }
+    logger.info("Company Dashboard initialized (fallback) — scanning %s", reports_path)
+    return _plugin_state
 
 
 @router.get("/tabs")
 async def get_tabs():
-    _ensure_initialized()
+    state = _get_state()
+    discovery = state["discovery"]
     return [
         {
             "id": r.tab_id,
@@ -57,23 +64,27 @@ async def get_tabs():
             "url": f"/dashboard/company/{r.tab_id}",
             "updated": r.mtime,
         }
-        for r in _discovery.get_reports()
+        for r in discovery.get_reports()
     ]
 
 
 @router.get("/report/{tab_id}")
 async def get_report(tab_id: str):
-    _ensure_initialized()
-    report = _get_report(tab_id)
+    state = _get_state()
+    discovery = state["discovery"]
+    renderer = state["renderer"]
+    reports_path = state["reports_path"]
+
+    report = discovery.get_report(tab_id)
     if not report:
         raise HTTPException(status_code=404, detail=f"Report '{tab_id}' not found")
     if not report.path.exists():
-        _discovery.scan(_reports_path)
-        raise HTTPException(status_code=404, detail=f"Report file '{report.path}' not found")
+        discovery.scan(reports_path)
+        raise HTTPException(status_code=404, detail=f"Report file not found")
 
     try:
         content = report.path.read_text(encoding="utf-8")
-        rendered = _renderer.render(content, tab_id)
+        rendered = renderer.render(content, tab_id)
         return {
             "tab_id": tab_id,
             "name": report.display_name,
@@ -87,21 +98,27 @@ async def get_report(tab_id: str):
 
 @router.get("/toc/{tab_id}")
 async def get_toc(tab_id: str):
-    _ensure_initialized()
-    report = _get_report(tab_id)
+    state = _get_state()
+    discovery = state["discovery"]
+    renderer = state["renderer"]
+
+    report = discovery.get_report(tab_id)
     if not report or not report.path.exists():
         return {"headings": []}
     try:
         content = report.path.read_text(encoding="utf-8")
-        return {"tab_id": tab_id, "headings": _renderer.extract_headings(content)}
+        return {"tab_id": tab_id, "headings": renderer.extract_headings(content)}
     except Exception:
         return {"headings": []}
 
 
 @router.post("/scan")
 async def rescan():
-    _ensure_initialized()
-    reports = _discovery.scan(_reports_path)
+    state = _get_state()
+    discovery = state["discovery"]
+    reports_path = state["reports_path"]
+
+    reports = discovery.scan(reports_path)
     return {
         "scanned": True,
         "count": len(reports),
@@ -111,12 +128,14 @@ async def rescan():
 
 @router.get("/search")
 async def search(q: str = ""):
-    _ensure_initialized()
+    state = _get_state()
+    discovery = state["discovery"]
+
     if not q:
         return await get_tabs()
     q_lower = q.lower()
     results = []
-    for r in _discovery.get_reports():
+    for r in discovery.get_reports():
         if q_lower in r.display_name.lower():
             results.append({"id": r.tab_id, "name": r.display_name, "match": "name"})
             continue
