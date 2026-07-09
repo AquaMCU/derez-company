@@ -1,6 +1,6 @@
 {
   "id": "derez-company",
-  "name": "Company",
+  "name": "derez-company",
   "icon": "building",
   "description": "Company reports dashboard — auto-discovers and renders reports from company/reports/",
   "routes": {
