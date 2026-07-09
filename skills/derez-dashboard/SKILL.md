@@ -319,6 +319,10 @@ No hardcoded colors.
 
 Implement as a standard Hermes plugin.
 
+Reference: [Hermes Built-in Plugins](https://hermes-agent.nousresearch.com/docs/user-guide/features/built-in-plugins)
+
+**This plugin is not part of this repository.** It is installed directly into Hermes as a built-in plugin, separate from the derez-company skill suite. The SKILL.md here serves as the specification and requirements document.
+
 Recommended structure:
 
 ```
