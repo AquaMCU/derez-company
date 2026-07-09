@@ -18,6 +18,7 @@ Every skill is designed to be:
 | Skill | Area | Status | Description |
 |---|---|---|---|
 | `derez-crm` | CRM | ✅ Live | Markdown-based CRM data management — leads, funnel, config, reports |
+| `dashboard` | Dashboard | ✅ Live | Hermes dashboard plugin — auto-discovers and renders reports from `company/reports/` |
 | `derez-marketing` | Marketing | 🚧 Coming soon | Campaign tracking, content pipelines, channel analytics |
 | `derez-sales` | Sales | 🚧 Coming soon | Outreach sequencing, deal tracking, sales playbooks |
 
@@ -28,10 +29,12 @@ Every skill is designed to be:
 ```
 derez-company/
 ├── skills/
-│   ├── derez-crm/          # CRM skill
+│   ├── dashboard/           # Hermes dashboard plugin
 │   │   └── SKILL.md
-│   ├── derez-marketing/    # (coming soon)
-│   └── derez-sales/        # (coming soon)
+│   ├── derez-crm/           # CRM data skill
+│   │   └── SKILL.md
+│   ├── derez-marketing/     # (coming soon)
+│   └── derez-sales/         # (coming soon)
 ├── AGENTS.md               # Agent architecture & contribution guide
 ├── LICENSE
 └── README.md
@@ -80,6 +83,7 @@ Skills never hardcode business logic. Funnel stages, statuses, strategies, and s
 
 - **Data skills** (`derez-crm`) manage storage, validation, and retrieval. They never perform business-specific work.
 - **Business skills** (marketing, sales) interpret data and execute actions. They never manage raw storage.
+- **Presentation skills** (`dashboard`) render data into UIs. They consume reports and files but never modify them.
 
 This keeps skills composable and prevents conflicts between agents.
 

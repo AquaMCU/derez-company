@@ -12,10 +12,10 @@ The `derez-company` suite follows a **layered agent architecture**:
 ┌─────────────────────────────────────────────┐
 │            User / Company Agent             │  Orchestrates tasks
 ├─────────────────────────────────────────────┤
-│  ┌──────────┐  ┌──────────┐  ┌──────────┐  │
-│  │derez-crm │  │marketing │  │  sales   │  │  Composable skills
-│  │ (data)   │  │(business)│  │(business)│  │
-│  └──────────┘  └──────────┘  └──────────┘  │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌───────────┐│
+│  │derez-crm │  │dashboard │  │marketing │  │   sales   ││  Composable skills
+│  │ (data)   │  │(present) │  │(business)│  │(business) ││
+│  └──────────┘  └──────────┘  └──────────┘  └───────────┘│
 ├─────────────────────────────────────────────┤
 │            Markdown Filesystem              │  Single source of truth
 │     company/crm/  company/marketing/ ...     │
@@ -26,7 +26,8 @@ The `derez-company` suite follows a **layered agent architecture**:
 
 1. **Data skills** — Manage raw data storage (`derez-crm`). These are pure CRUD: create, read, update, search, report. No business logic.
 2. **Business skills** — Use data skills to perform actual work (marketing campaigns, sales outreach, etc.). They call data skills via the agent runtime.
-3. **Orchestrator** — The user's company agent decides which skills to invoke based on the task.
+3. **Presentation skills** — Render data into UIs (`dashboard`). They consume reports and files but never modify them.
+4. **Orchestrator** — The user's company agent decides which skills to invoke based on the task.
 
 ---
 
@@ -113,7 +114,8 @@ Every skill must have a `SKILL.md` that defines:
 ### Naming convention
 
 - Skill directory: `kebab-case`
-- Prefix: `derez-` (e.g., `derez-crm`, `derez-marketing`, `derez-sales`)
+- Prefix: `derez-` for agent skills (e.g., `derez-crm`, `derez-marketing`, `derez-sales`)
+- No prefix for dashboard/plugin skills (e.g., `dashboard`)
 - Data files: `kebab-case.md`
 
 ---
@@ -134,6 +136,7 @@ Before submitting a new skill, verify it works correctly in both environments.
 | Area | Status | Notes |
 |---|---|---|
 | CRM (`derez-crm`) | ✅ Live | Core data management complete |
+| Dashboard (`dashboard`) | ✅ Live | Hermes plugin — report discovery & rendering |
 | Marketing (`derez-marketing`) | 🚧 In progress | Campaign tracking, content pipelines |
 | Sales (`derez-sales`) | 🚧 In progress | Outreach sequencing, deal tracking |
 | HR | 📋 Planned | Employee records, onboarding |
