@@ -1,33 +1,42 @@
 # AGENTS.md
 
-This file is the **agent-facing** guide to the `derez-company` skill suite. It explains how agents should interact with the skills, the architecture of the system, and how to contribute new skills.
+This file is the **agent-facing** guide to the `derez-company` skill suite. It explains how agents should interact with the plugin, the architecture of the system, and how to contribute new skills.
 
 ---
 
 ## Architecture
 
-The `derez-company` suite follows a **layered agent architecture**:
+The `derez-company` repository is a **single Hermes plugin** that bundles multiple components:
 
 ```
-┌─────────────────────────────────────────────┐
-│            User / Company Agent             │  Orchestrates tasks
-├─────────────────────────────────────────────┤
-│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌───────────┐│
-│  │derez-crm │  │dashboard │  │marketing │  │   sales   ││  Composable skills
-│  │ (data)   │  │(present) │  │(business)│  │(business) ││
-│  └──────────┘  └──────────┘  └──────────┘  └───────────┘│
-├─────────────────────────────────────────────┤
-│            Markdown Filesystem              │  Single source of truth
-│     company/crm/  company/marketing/ ...     │
-└─────────────────────────────────────────────┘
+derez-company/
+├── plugin.yaml              # Hermes plugin manifest — discovery entry point
+├── __init__.py              # register(ctx) — hooks, slash commands, skill registration
+├── dashboard/
+│   ├── manifest.json        # Standard Hermes dashboard manifest (entry, tab, api, css)
+│   ├── plugin_api.py        # FastAPI APIRouter — serves report data to the frontend
+│   └── dist/
+│       ├── index.js         # Frontend JS bundle — renders the Company tab
+│       └── style.css        # Minimal CSS reset
+├── discovery.py             # Scans company/reports/ for .md files
+├── markdown_renderer.py     # Parses markdown into enhanced structure
+├── renderer.py              # Transforms into dashboard UI primitives
+├── skills/
+│   ├── derez-crm/           # CRM data management skill
+│   │   └── SKILL.md
+│   └── derez-dashboard/     # Dashboard specification skill
+│       └── SKILL.md
+├── README.md
+├── AGENTS.md
+└── LICENSE
 ```
 
 ### Layers
 
-1. **Data skills** — Manage raw data storage (`derez-crm`). These are pure CRUD: create, read, update, search, report. No business logic.
-2. **Business skills** — Use data skills to perform actual work (marketing campaigns, sales outreach, etc.). They call data skills via the agent runtime.
-3. **Presentation skills** — Render data into UIs (`dashboard`). They consume reports and files but never modify them.
-4. **Orchestrator** — The user's company agent decides which skills to invoke based on the task.
+1. **Data skills** (`skills/derez-crm/`) — Manage raw data storage. Pure CRUD: create, read, update, search, report. No business logic. Skills are registered via `ctx.register_skill()` in `__init__.py`.
+2. **Dashboard plugin** (`dashboard/`) — Standard Hermes dashboard plugin. The `manifest.json` uses the standard schema (`entry`, `tab`, `api`, `css`) that Hermes actually reads. The frontend JS is loaded as an iframe entry. The backend is a FastAPI `APIRouter` mounted automatically by Hermes.
+3. **Presentation skills** (`skills/derez-dashboard/SKILL.md`) — These are specifications only. The actual implementation is the dashboard plugin.
+4. **Business skills** (future: `derez-marketing`, `derez-sales`) — Use data skills to perform actual work.
 
 ---
 
@@ -62,34 +71,86 @@ All searching is done with `ripgrep` (`rg`). This is fast, works on Markdown fil
 
 ---
 
-## How to Use a Skill
+## How to Use the Plugin
 
 ### For agents
 
 When a user asks you to perform a task:
 
-1. Identify which skill(s) are relevant.
-2. Read the skill's `SKILL.md` for instructions.
-3. Follow the skill's storage layout, format, and query rules.
-4. If the skill is a **data skill**, return file paths for further processing.
-5. If the skill is a **business skill**, execute the task according to its playbook.
-6. If the skill is a **presentation skill**, its `SKILL.md` serves as a specification — the actual implementation is a separate Hermes plugin.
+1. Check whether a skill exists for that domain under `skills/`.
+2. If it exists, read its `SKILL.md` and follow its instructions.
+3. If the skill is a **data skill**, return file paths for further processing.
+4. If the skill is a **presentation skill**, its `SKILL.md` is a specification — the actual dashboard implementation lives in `dashboard/`.
+5. If no skill exists, note it — the user may want to create one.
 
 ### For humans
 
-Install a skill from [derez.ai](https://derez.ai) or add it to your Hermes configuration. Then tell your agent which skills are available.
+Install with one command:
 
-### Dashboard plugins are Hermes plugins, not agent skills
+```bash
+hermes plugins install https://github.com/AquaMCU/derez-company.git
+hermes plugins enable derez-company
+```
 
-Presentation skills like `derez-dashboard` are different from agent skills. Their `SKILL.md` is a **requirements specification** — the actual plugin is built as a standard [Hermes plugin](https://hermes-agent.nousresearch.com/docs/user-guide/features/built-in-plugins) and lives at `<hermes-repo>/plugins/<name>/` (bundled) or `~/.hermes/plugins/<name>/` (user-installed). It is not part of this repository.
+---
 
-Key points from the [Hermes built-in plugins documentation](https://hermes-agent.nousresearch.com/docs/user-guide/features/built-in-plugins):
+## Dashboard Plugin Structure (Standard Hermes Schema)
 
-- **Discovery** — The `PluginManager` scans four sources in order: bundled `<repo>/plugins/<name>/`, user `~/.hermes/plugins/<name>/`, project `./.hermes/plugins/<name>/`, and pip entry points.
-- **Opt-in** — Bundled plugins ship disabled. Enable via `hermes plugins enable <name>` or `~/.hermes/config.yaml`.
-- **Dashboard plugins** — Dashboard-only plugins (like the Company Reports Dashboard) auto-register as tabs via `dashboard/manifest.json`. They don't need `plugins.enabled` — they're discovered purely through their manifest.
-- **Name collision** — Later sources override earlier ones. A user plugin with the same name replaces a bundled one.
-- **Build your own** — See [Build a Hermes Plugin](https://hermes-agent.nousresearch.com/docs/user-guide/features/built-in-plugins) for implementation
+The `dashboard/manifest.json` uses the standard Hermes dashboard plugin schema, not custom fields. This is critical for compatibility.
+
+### Required manifest fields
+
+```json
+{
+  "name": "derez-company",
+  "label": "Company",
+  "icon": "building",
+  "tab": { "path": "/company" },
+  "entry": "dist/index.js",
+  "css": "dist/style.css",
+  "api": "plugin_api.py"
+}
+```
+
+| Field | Purpose |
+|---|---|
+| `name` | Plugin identifier — must match `plugins.enabled` name |
+| `label` | Display name shown in the dashboard tab |
+| `icon` | Icon identifier |
+| `tab.path` | Route path for the tab (e.g. `/dashboard/company`) |
+| `entry` | JS bundle path (relative to `dashboard/`). The frontend loads this as an iframe. |
+| `css` | Optional CSS file path |
+| `api` | Python file with a FastAPI `APIRouter` named `router`. Hermes mounts this automatically. |
+
+### What NOT to do
+
+The following **custom fields are ignored** by Hermes and must not be used:
+
+```json
+{
+  "handler_module": "...",   // ✗ NOT read by Hermes
+  "handlers": { ... },      // ✗ NOT read by Hermes
+  "routes": { ... }         // ✗ NOT read by Hermes
+}
+```
+
+### How the frontend works
+
+1. Hermes reads `manifest.json` and discovers `entry`, `api`, and `tab`.
+2. The frontend loads `dist/index.js` inside an iframe at `/dashboard/company`.
+3. The JS bundle calls the plugin API at `/api/plugins/derez-company/`.
+4. The API is served by `plugin_api.py` — a FastAPI `APIRouter` that Hermes mounts automatically.
+5. The frontend self-renders using inline styles (no external dependencies).
+
+### API endpoints
+
+| Endpoint | Method | Description |
+|---|---|---|
+| `/api/plugins/derez-company/tabs` | GET | List all discovered report tabs |
+| `/api/plugins/derez-company/report/{tab_id}` | GET | Get rendered content for a tab |
+| `/api/plugins/derez-company/toc/{tab_id}` | GET | Get table of contents for a tab |
+| `/api/plugins/derez-company/scan` | POST | Force rescan of `company/reports/` |
+| `/api/plugins/derez-company/search?q=...` | GET | Search across all reports |
 
 ---
 
@@ -115,6 +176,19 @@ Every skill must have a `SKILL.md` that defines:
 | `## Format` | ✅ | Data format (YAML frontmatter, Markdown body) |
 | Query behavior | ✅ | How agents should search and retrieve data |
 
+### Register a new bundled skill
+
+Add it to `plugin.yaml` under the `skills:` list:
+
+```yaml
+skills:
+  - name: your-skill-name
+    path: skills/your-skill-name
+    description: What it does
+```
+
+The `__init__.py` will call `ctx.register_skill()` for it automatically.
+
 ### Design principles
 
 1. **Markdown is the database.** Every record is a single Markdown file with YAML frontmatter.
@@ -128,8 +202,27 @@ Every skill must have a `SKILL.md` that defines:
 
 - Skill directory: `kebab-case`
 - Prefix: `derez-` for agent skills (e.g., `derez-crm`, `derez-marketing`, `derez-sales`)
-- No prefix for dashboard/plugin skills (e.g., `dashboard`)
 - Data files: `kebab-case.md`
+
+---
+
+## How to Contribute to the Dashboard Plugin
+
+The dashboard is a standard Hermes plugin inside `dashboard/`. To modify it:
+
+1. Edit `dashboard/plugin_api.py` to add or change API endpoints.
+2. Edit `dashboard/dist/index.js` to change the frontend rendering.
+3. The `manifest.json` uses the standard schema — do not add custom fields.
+
+### Testing locally
+
+```bash
+# Install the plugin from local path
+ln -s $(pwd) ~/.hermes/plugins/derez-company
+hermes plugins enable derez-company
+```
+
+Restart Hermes and open the dashboard. The "Company" tab appears at `/dashboard/company`.
 
 ---
 
@@ -161,8 +254,10 @@ Before submitting a new skill, verify it works correctly in both environments.
 ## Notes for Agents
 
 - You are reading this file because you are operating in a `derez-company` workspace.
+- This entire repository is one Hermes plugin. Skills are bundled inside `skills/` and registered via `plugin.yaml`.
 - Before performing any business operation, check whether a skill exists for that domain.
 - If a skill exists, read its `SKILL.md` and follow its instructions.
 - If no skill exists, ask the user whether they'd like to create one or contribute it.
 - Never modify a skill's `SKILL.md` unless you are explicitly asked to improve the skill itself.
 - When in doubt, return file paths — the user or another agent can open them.
+- For dashboard issues: check `dashboard/manifest.json` uses standard Hermes schema (`entry`, `tab`, `api`), not custom fields.

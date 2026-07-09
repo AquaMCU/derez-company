@@ -1,5 +1,5 @@
 name: derez-company
-version: "1.0.0"
+version: "1.0.1"
 description: >
   Company-in-a-box for Hermes. Provides CRM data management skills and a
   Company Reports Dashboard that auto-discovers and renders reports from
