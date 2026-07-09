@@ -73,10 +73,23 @@ When a user asks you to perform a task:
 3. Follow the skill's storage layout, format, and query rules.
 4. If the skill is a **data skill**, return file paths for further processing.
 5. If the skill is a **business skill**, execute the task according to its playbook.
+6. If the skill is a **presentation skill**, its `SKILL.md` serves as a specification — the actual implementation is a separate Hermes plugin.
 
 ### For humans
 
 Install a skill from [derez.ai](https://derez.ai) or add it to your Hermes configuration. Then tell your agent which skills are available.
+
+### Dashboard plugins are Hermes plugins, not agent skills
+
+Presentation skills like `derez-dashboard` are different from agent skills. Their `SKILL.md` is a **requirements specification** — the actual plugin is built as a standard [Hermes plugin](https://hermes-agent.nousresearch.com/docs/user-guide/features/built-in-plugins) and lives at `<hermes-repo>/plugins/<name>/` (bundled) or `~/.hermes/plugins/<name>/` (user-installed). It is not part of this repository.
+
+Key points from the [Hermes built-in plugins documentation](https://hermes-agent.nousresearch.com/docs/user-guide/features/built-in-plugins):
+
+- **Discovery** — The `PluginManager` scans four sources in order: bundled `<repo>/plugins/<name>/`, user `~/.hermes/plugins/<name>/`, project `./.hermes/plugins/<name>/`, and pip entry points.
+- **Opt-in** — Bundled plugins ship disabled. Enable via `hermes plugins enable <name>` or `~/.hermes/config.yaml`.
+- **Dashboard plugins** — Dashboard-only plugins (like the Company Reports Dashboard) auto-register as tabs via `dashboard/manifest.json`. They don't need `plugins.enabled` — they're discovered purely through their manifest.
+- **Name collision** — Later sources override earlier ones. A user plugin with the same name replaces a bundled one.
+- **Build your own** — See [Build a Hermes Plugin](https://hermes-agent.nousresearch.com/docs/user-guide/features/built-in-plugins) for implementation
 
 ---
 
