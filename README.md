@@ -57,15 +57,32 @@ company/
 
 ## Getting Started
 
-### Hermes Agent
+### One-command install
 
-1. Add the skill to your Hermes configuration.
-2. Reference the skill path in your agent's instructions.
-3. The skill handles all CRM data operations — your agent focuses on the actual work.
+```bash
+hermes plugins install https://github.com/AquaMCU/derez-company.git
+```
+
+This clones the repo into `~/.hermes/plugins/derez-company/`, registers all bundled skills, and activates the Company Reports Dashboard tab.
+
+After install, enable the plugin:
+
+```bash
+hermes plugins enable derez-company
+```
+
+Restart Hermes. The **Company** tab appears in the dashboard, and bundled skills (`derez-crm`, `derez-dashboard`) are available to your agent.
+
+### Manual install
+
+```bash
+git clone https://github.com/AquaMCU/derez-company.git ~/.hermes/plugins/derez-company
+hermes plugins enable derez-company
+```
 
 ### [derez.ai](https://derez.ai)
 
-Visit [derez.ai](https://derez.ai), search for the skill, and install with one click. The skill is immediately available for your company workspace.
+Visit [derez.ai](https://derez.ai), search for "derez-company", and install with one click.
 
 ---
 
