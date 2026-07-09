@@ -39,7 +39,7 @@ def _get_state():
     from markdown_renderer import MarkdownRenderer
     discovery = ReportDiscovery()
     renderer = MarkdownRenderer()
-    workspace = os.getcwd()
+    workspace = str(Path.home())
     reports_path = Path(workspace) / "company" / "reports"
     reports_path.mkdir(parents=True, exist_ok=True)
     discovery.scan(reports_path)

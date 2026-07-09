@@ -33,7 +33,7 @@ def register(ctx):
                 logger.info("Registered bundled skill: %s", skill_dir.name)
 
     # --- Dashboard: resolve reports path ---
-    workspace = getattr(ctx, "workspace", None) or os.getcwd()
+    workspace = getattr(ctx, "workspace", None) or str(Path.home())
     reports_path = Path(workspace) / "company" / "reports"
     reports_path.mkdir(parents=True, exist_ok=True)
 
