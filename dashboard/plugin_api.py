@@ -18,7 +18,7 @@ from markdown_renderer import MarkdownRenderer
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/plugins/derez-company", tags=["derez-company"])
+router = APIRouter(tags=["derez-company"])
 
 _discovery: ReportDiscovery | None = None
 _renderer: MarkdownRenderer | None = None
