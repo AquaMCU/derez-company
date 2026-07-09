@@ -1,6 +1,6 @@
 {
   "name": "derez-company",
-  "label": "derez.ai"
+  "label": "derez.ai",
   "icon": "building",
   "tab": { "path": "/company" },
   "entry": "dist/index.js",
