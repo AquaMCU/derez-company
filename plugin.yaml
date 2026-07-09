@@ -1,0 +1,14 @@
+name: derez-company
+version: "1.0.0"
+description: >
+  Company-in-a-box for Hermes. Provides CRM data management skills and a
+  Company Reports Dashboard that auto-discovers and renders reports from
+  company/reports/.
+requires_env: []
+skills:
+  - name: derez-crm
+    path: skills/derez-crm
+    description: CRM data management — leads, funnel, config, reports
+  - name: derez-dashboard
+    path: skills/derez-dashboard
+    description: Company Reports Dashboard specification

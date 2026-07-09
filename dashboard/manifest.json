@@ -1,0 +1,13 @@
+{
+  "id": "derez-company",
+  "name": "Company",
+  "icon": "building",
+  "description": "Company reports dashboard — auto-discovers and renders reports from company/reports/",
+  "routes": {
+    "tabs": "/api/plugins/derez-company/tabs",
+    "report": "/api/plugins/derez-company/report/{tab_id}",
+    "toc": "/api/plugins/derez-company/toc/{tab_id}",
+    "scan": "/api/plugins/derez-company/scan",
+    "search": "/api/plugins/derez-company/search"
+  }
+}
