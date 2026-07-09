@@ -1,8 +1,16 @@
 {
   "id": "derez-company",
-  "name": "derez-company",
+  "name": "derez-company"
   "icon": "building",
   "description": "Company reports dashboard — auto-discovers and renders reports from company/reports/",
+  "handler_module": "dashboard.handlers",
+  "handlers": {
+    "tabs": "handle_tabs",
+    "report": "handle_report",
+    "toc": "handle_toc",
+    "scan": "handle_scan",
+    "search": "handle_search"
+  },
   "routes": {
     "tabs": "/api/plugins/derez-company/tabs",
     "report": "/api/plugins/derez-company/report/{tab_id}",

@@ -10,8 +10,10 @@ import logging
 import os
 from pathlib import Path
 
-from .discovery import ReportDiscovery
-from .markdown_renderer import MarkdownRenderer
+# Hermes adds the plugin root directory to sys.path,
+# so we import from plugin-root-relative modules directly.
+from discovery import ReportDiscovery
+from markdown_renderer import MarkdownRenderer
 
 logger = logging.getLogger(__name__)
 
