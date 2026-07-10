@@ -5,3 +5,7 @@ description: >
   Company Reports Dashboard that auto-discovers and renders reports from
   company/reports/.
 requires_env: []
+skills:
+  - name: remote-browser
+    path: skills/remote-browser
+    description: Control a remote Brave browser at localhost:9222 via Chrome DevTools Protocol
