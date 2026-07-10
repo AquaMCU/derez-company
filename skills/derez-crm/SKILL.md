@@ -207,25 +207,82 @@ blacklisted
 
 # Reports
 
-CRM reports are written to
+CRM reports are generated using the report generator script:
 
 ```
-company/reports/crm.md
+python3 company/crm/generate_report.py
 ```
 
-The report contains exactly these sections.
+The generator:
+
+1. **Saves a weekly snapshot** of the status breakdown to `company/crm/history/weekly_status.json`
+2. **Computes weekly deltas** by comparing the current week against the previous week
+3. **Generates the report** at `company/reports/crm.md` (Markdown) and `company/reports/crm.html` (HTML with inline SVG chart)
+
+## Weekly History
+
+Each time a report is generated, the current status counts are saved as a snapshot
+keyed by ISO week (e.g., `2026-W28`).
+
+The history file `company/crm/history/weekly_status.json` stores:
+
+```json
+[
+  {"week": "2026-W28", "date": "2026-07-10", "statuses": {"cold": 63, "client": 3, "partner": 4}}
+]
+```
+
+New snapshots are appended every time the report is generated.
+
+## Report Sections
+
+The report contains exactly these sections, in this order:
 
 ```
 # CRM Report
 
-## Funnel Report
-
-## Affiliate Report
-
-## Strategy Performance
-
-## Source Performance
+## Weekly Progress          ← Metric cards showing deltas vs last week
+## Weekly Status Breakdown   ← Table of status counts per week
+## Full Breakdown
+   ### Funnel Report
+   ### Status Report
+   ### Language Report
+   ### Source Performance
+   ### Strategy Performance
+   ### Affiliate Report
 ```
+
+### Weekly Progress
+
+The top of the report displays progress cards comparing the current week to the
+previous week. The 4 cards shown are:
+
+- **Total Leads**: count (delta)
+- **Top 3 statuses**: count (delta) — e.g., `Cold: 63 (-3)`, `Partner: 4 (+1)`
+
+When only one week of history exists (baseline), deltas are omitted.
+
+### Weekly Status Breakdown (Chart)
+
+The HTML report includes an SVG line chart showing status trends over the last
+12 weeks. The Markdown report includes a table with the same data.
+
+Legend colors used in the chart:
+
+| Status      | Color   |
+|-------------|---------|
+| cold        | Indigo  |
+| partner     | Emerald |
+| client      | Blue    |
+| warm        | Amber   |
+| hot         | Red     |
+| won         | Green   |
+| lost        | Gray    |
+
+### Full Breakdown
+
+These sections mirror the previous report structure — funnel stages, status
+counts, language, source, strategy, and affiliate data.
 
 No other sections are created unless requested.
 
@@ -358,70 +415,33 @@ using kebab-case.
 
 # CRM Report Generation
 
-The report is regenerated when requested.
+Use the report generator script:
 
-Output file
-
-```
-company/reports/crm.md
+```bash
+python3 company/crm/generate_report.py
 ```
 
-Sections
+This reads all leads, saves a weekly status snapshot, computes deltas, and
+writes both Markdown and HTML reports.
 
-## Funnel Report
+Output files:
+- `company/reports/crm.md`
+- `company/reports/crm.html` (includes SVG chart)
+- `company/crm/history/weekly_status.json` (appended each run)
 
-Counts leads by funnel stage.
+The script must be run from the company root (the directory containing `crm/`).
 
-Example
+Existing sections kept:
+- Funnel Report
+- Status Report
+- Language Report
+- Source Performance
+- Strategy Performance
+- Affiliate Report
 
-```
-Lead ............. 15
-Qualified ........ 8
-Discovery ........ 6
-Proposal ......... 4
-Negotiation ...... 2
-Won .............. 12
-Lost ............. 7
-```
-
----
-
-## Affiliate Report
-
-Groups by affiliate code.
-
-Displays
-
-* total leads
-* won
-* lost
-* active
-
----
-
-## Strategy Performance
-
-Groups by strategy.
-
-Displays
-
-* leads
-* active
-* won
-* lost
-
----
-
-## Source Performance
-
-Groups by source.
-
-Displays
-
-* leads
-* active
-* won
-* lost
+New sections:
+- Weekly Progress (metric cards at the top with deltas)
+- Weekly Status Breakdown (table + SVG line chart)
 
 ---
 
